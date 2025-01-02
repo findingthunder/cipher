@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sharno's Encoder/Decoder</title>
+    <style>
+                body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1b1b1b; /* Dark background color */
+            color: #fff; /* Light text color */
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 80px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -40px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:show .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+
+        #container {
+            max-width: calc(100% - 40px); /* Set maximum width slightly less than the window width */;
+            padding: 20px;
+            border: 2px solid #555; /* Darker border color */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            text-align: center;
+            background-color: #1f1f1f; /* Slightly lighter background color */
+            word-wrap: break-word; /* Enable text wrapping */
+        }
+        h1,
+        label,
+        input,
+        button,
+        div {
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        #result {
+            max-width: calc(100% - 40px); /* Set maximum width slightly less than the window width */;
+            padding: 10px;
+            border: 1px solid #555; /* Darker border color */
+            border-radius: 5px;
+            background-color: #333; /* Darker background color for result */
+            color: #ffffff; /* Black text color for result */
+            font-family:Tahoma ;
+            position: relative;
+            word-wrap: break-word; /* Enable text wrapping */
+        }
+
+        /* Generate noise for the result background */
+        #result::before {
+            content: '';
+            position: bottom;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: 4px 4px;
+            background-image: linear-gradient(to right, #555 25%, transparent 25%, transparent 50%, #555 50%, #555 75%, transparent 75%, transparent),
+                              linear-gradient(to bottom, #555 25%, transparent 25%, transparent 50%, #555 50%, #555 75%, transparent 75%, transparent);
+        }
+        #input {
+            width: 50%;
+            height: 20px; /* Adjust the height as needed */
+        }
+
+        #key {
+            width: 60px; /* Adjust the width as needed */
+        }
+        #bottom-right {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        text-align-last: center;
+        color: white;
+        font-family: Papyrus, fantasy; /* Use Papyrus font */
+        font-size: 3vw; /* Adjust font size relative to viewport width */
+        padding: 10px;
+    }
+    </style>
+    <script>
+        function copyText() {
+            var tempInput = document.createElement("input");
+            var tempkey=0;
+            tempkey=Number(document.getElementById("key").value);
+            var textToCopy = document.getElementById("result").innerText;
+            textToCopy=textToCopy.substring((textToCopy.indexOf(":")+2));
+            if(tempkey==0||tempInput==""){
+            textToCopy="WAAAAW! Bro discovered the copy button & decided to try it first";
+            window.alert(textToCopy);}
+            tempInput.value = textToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            // Show tooltip
+            const tooltip = document.getElementById("tooltip");
+            tooltip.classList.add("show");
+
+            // Hide tooltip after 2 seconds
+            setTimeout(() => {
+                tooltip.classList.remove("show");
+            }, 2000);
+        }
+
+        function isLetterOrDigit(char) {
+            return /^[a-zA-Z0-9]+$/.test(char);
+        }
+        function ccEncrypt() {
+            let input = document.getElementById("input").value; // Input
+            if(input.substring(0,3)=="@e¬")
+            input=input.substring(3,((input.length)-1));
+            let key = Number(document.getElementById("key").value); // Input
+            if(key%26 == 0||key%10==0){
+                key=15;
+            }
+            let result = Array.from(input).map(char => {
+                let hex = char.codePointAt(0).toString(16); // Get hexadecimal representation of code point
+                let x = parseInt(hex, 16);
+                //console.log("initial x=" + x);
+                if (x >= 65 && x <= 90) {
+                    x = (((x - 65) + key) % 26) + 65;
+                } 
+                else if (x>=97 && x<=122){
+                    x = (((x - 97) + key) % 26) + 97;
+                }
+                else if(x>=48 && x<=57){
+                    x = (((x - 48) + key) % 10) + 48;
+                }
+                if(char===" "){
+                    char="~";
+                    //console.log("final x=" + x);
+                    return char;
+                }
+                return String.fromCodePoint(x);
+            });
+            //document.getElementById("result").innerHTML = "ENCODED TEXT: " + nw; // Print
+            return result.join('');
+            //return input;
+        }
+
+        function rfcEncrypt(str) {
+            // Fetch the input string and number of rails directly from the HTML elements
+            //let str = document.getElementById("input").value;
+            let rails = Number(document.getElementById("key").value);
+            // Initialize an array to hold each rail
+            rails=rails%4+2;
+            ch="key="+rails+"\tsize="+str.length;
+            console.log(ch);
+            let fence = Array.from({ length: rails }, () => []);
+            let rail = 0;
+            let direction = 'down';
+            let encryptedStr = '';
+
+            // Iterate through each character in the string
+            for (let char of Array.from(str)) {
+                // Push the character to the appropriate rail
+                fence[rail].push(char);
+    
+                // Update the rail and direction for the next character
+                if (rail === 0) {
+                    direction = 'down';
+                }
+                else if (rail === rails - 1) {
+                    direction = 'up';
+                }
+                direction === 'down' ? rail++ : rail--;
+            }
+
+            // Flatten the fence array and join the characters into a single string
+            encryptedStr = fence.flat().join('');
+
+            // Set the innerHTML of the "result" element with the encrypted text
+            //document.getElementById("result").innerHTML = "ENCODED TEXT: " + encryptedStr;
+            return encryptedStr;
+        }
+
+        function rfcDecrypt(cipher) {
+    let key = Number(document.getElementById("key").value);
+    key = key % 4 + 2;
+
+    // Initialize the rail matrix with empty cells
+    let rail = new Array(key).fill().map(() => new Array(cipher.length).fill('\n'));
+
+    // Fill the rail matrix with '*' at the positions where the characters from the ciphertext will be placed
+    let dirDown = false;
+    let row = 0, col = 0;
+    for (let i = 0; i < cipher.length; i++) {
+        if (row === 0) dirDown = true;
+        if (row === key - 1) dirDown = false;
+        rail[row][col] = '*';
+        dirDown ? row++ : row--;
+        col++;
+    }
+
+    // Fill the rail matrix with characters from the ciphertext
+    let index = 0;
+    for (let i = 0; i < key; i++) {
+        for (let j = 0; j < cipher.length; j++) {
+            if (rail[i][j] === '*' && index < cipher.length) {
+                let codePoint = cipher.codePointAt(index);
+                rail[i][j] = String.fromCodePoint(codePoint);
+                index++;
+            }
+        }
+    }
+
+    // Reconstruct the original message from the rail matrix, handling emojis properly
+    let result = [];
+    row = 0;
+    col = 0;
+    dirDown = false;
+    for (let i = 0; i < cipher.length; i++) {
+        if (row === 0) dirDown = true;
+        if (row === key - 1) dirDown = false;
+        if (rail[row][col] !== '*') {
+            result.push(rail[row][col]);
+            col++;
+        }
+        dirDown ? row++ : row--;
+    }
+    let decodedResult = result.join('');
+
+    // Display the decoded result
+    return decodedResult;
+}
+        function ccDecrypt() {
+            let ch, nkey, j, i, nw = "", x = 0;
+            let input = document.getElementById("input").value; // Input
+            if(input.substring(0,3)=="@e¬")
+            input=input.substring(3,((input.length)-1))
+            let key = Number(document.getElementById("key").value); // Input
+            if(key%26 == 0||key%10==0){
+                key=15;
+            }
+            key = 26 - (key % 26);
+            nkey= 10 - (key%10);
+            let result = Array.from(input).map(char => {
+                let hex = char.codePointAt(0).toString(16);
+                let x = parseInt(hex,16);
+                //console.log("initial x=" + x);
+                if (x >= 65 && x <= 90) {
+                    x = (((x - 65) + key) % 26) + 65;
+                } 
+                else if (x>=97 && x<=122){
+                    x = (((x - 97) + key) % 26) + 97;
+                }
+                else if(x>=48 && x<=57){
+                    x = (((x - 48) + key) % 10) + 48;
+                }
+                if(char==="~"){
+                    char=" ";
+                    //console.log("final x=" + x);
+                    return char;
+                }
+                return String.fromCodePoint(x);
+            });
+            //document.getElementById("result").innerHTML = "ENCODED TEXT: " + nw; // Print
+            return result.join('');
+            //return input;
+        }
+        function encode(){
+            console.log(ccEncrypt());
+            let result=rfcEncrypt(ccEncrypt());
+            console.log(result);
+            let k=0;
+            k=Number(document.getElementById("key").value);
+            if(k==0||result==""){
+            if(result==""){
+            result="Tell me your secret... I won't tell Mark Zuckerberg... Oh you didnt expect that? :)";
+            window.alert("Bro's secret is so secret... He couldn't even trust the algorithm with it");}
+            if(k==0){
+                result="Tell me your secret... I'm not your ex-bestie... Pinky Promise :)";
+            window.alert("You need a key to lock your secrets... WAIT!! Is the key your secret?");
+            }}
+            else{
+                result="@e¬" + result + "*";
+            }
+            document.getElementById("result").innerHTML = "ENCODED TEXT: " + result;
+        }
+        function decode(){
+            console.log(ccDecrypt());
+            let result=rfcDecrypt(ccDecrypt());
+            console.log(result);
+            let k=0;
+            k=Number(document.getElementById("key").value);
+            if(k==0||result==""){
+            if(result==""){
+            result="Sometimes you guys remind me of the ex that I never had :)";
+            window.alert("You want answers but you won't tell me the question? Demn..");}
+            if(k==0){
+                result="Did you know Bro is a gender neutral word... Dont Google it... Just trust me bro :)";
+            window.alert("Bro's opening a lock without a key... Somebody call the police already :)");
+            }}
+            document.getElementById("result").innerHTML = "DECODED TEXT: " + result;
+        }
+    </script>
+</head>
+
+<body>
+    <h1>ENCODE & DECODE</h1>
+    <br>
+    <label for="input">ENTER TEXT  </label>
+    <input type="String" id="input">
+    <label for="input">ENTER KEY  </label>
+    <input type="number" id="key">
+    <br>
+
+    <button onclick="encode()">ENCODE</button>
+    <button onclick="decode()">DECODE</button>
+
+    <br>
+
+    <div id="result">RESULT APPEARS HERE</div>
+    <br>
+    <div class="tooltip">
+        <button onclick="copyText()">Copy Result</button>
+        <span class="tooltiptext" id="tooltip">Copied!</span>
+    </div>
+    
+    <div id="bottom-right">Sharno<br>@findinganand</div>
+    <br>
+</body>
+
+</html>
