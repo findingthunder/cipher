@@ -267,7 +267,7 @@
                 key=15;
             }
             key = 26 - (key % 26);
-            nkey= 10-(key%10);
+            nkey= key%10;
             let result = Array.from(input).map(char => {
                 let hex = char.codePointAt(0).toString(16);
                 let x = parseInt(hex,16);
@@ -279,7 +279,7 @@
                     x = (((x - 97) + key) % 26) + 97;
                 }
                 else if(x>=48 && x<=57){
-                    x = (((x - 48) + nkey) % 10) + 48;
+                    x = (((x - 48) - nkey + 10) % 10) + 48;
                 }
                 if(char==="~"){
                     char=" ";
